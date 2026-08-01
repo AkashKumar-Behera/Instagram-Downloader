@@ -23,7 +23,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Media Downloader & Quality Selector</title>
+    <title>Instagram Media Downloader & Developer Tools</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -49,6 +49,15 @@ HTML_TEMPLATE = """
                 Paste any link, click <strong>Fetch Info</strong>, then view & download all photos & videos easily.
             </p>
         </div>
+
+        <!-- Mode Badge Indicator -->
+        {% if is_dev %}
+        <div class="mb-6 flex justify-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                <span>💻 Developer Mode Activated (Direct Image/Video URL Copier Enabled)</span>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Input & Action Box -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl backdrop-blur-xl mb-8 space-y-4">
@@ -89,7 +98,7 @@ HTML_TEMPLATE = """
         <!-- Status Message -->
         <div id="status" class="hidden p-4 rounded-2xl text-sm font-semibold mb-6"></div>
 
-        <!-- Single Video Quality Selector Box (Only shown when it's a Video/Reel) -->
+        <!-- Single Video Quality Selector Box -->
         <div id="video-quality-box" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-8 space-y-4 shadow-2xl">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
@@ -110,25 +119,36 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- Results Grid for Carousel / Media Cards (All items displayed together) -->
+        <!-- Results Grid for Carousel / Media Cards -->
         <div id="results-container" class="hidden space-y-6">
             <h2 class="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 flex items-center justify-between">
                 <span>Fetched Media Items</span>
                 <span id="files-count" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 rounded-full text-pink-400">0 Items</span>
             </h2>
             <div id="media-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                <!-- All Carousel Photos/Videos rendered together here -->
+                <!-- Media Cards Rendered Here -->
             </div>
         </div>
 
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-bold px-5 py-3 rounded-2xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+        <span>✅ Direct URL copied to clipboard!</span>
+    </div>
+
     <!-- Footer -->
-    <footer class="py-6 border-t border-slate-900 text-center text-xs text-slate-600">
-        Instagram Downloader • Built with Flask & Instaloader
+    <footer class="py-6 border-t border-slate-900 text-center text-xs text-slate-600 flex justify-center items-center gap-4">
+        <span>Instagram Downloader • Built with Flask & Instaloader</span>
+        {% if not is_dev %}
+        • <a href="/developer" class="text-pink-400 hover:underline font-bold">💻 Developer Mode</a>
+        {% else %}
+        • <a href="/" class="text-slate-400 hover:underline">🏠 Standard Mode</a>
+        {% endif %}
     </footer>
 
     <script>
+        const isDeveloper = {{ 'true' if is_dev else 'false' }};
         const form = document.getElementById('fetch-form');
         const urlInput = document.getElementById('insta-url');
         const pasteBtn = document.getElementById('paste-btn');
@@ -141,6 +161,7 @@ HTML_TEMPLATE = """
         const resultsContainer = document.getElementById('results-container');
         const mediaGrid = document.getElementById('media-grid');
         const filesCount = document.getElementById('files-count');
+        const toast = document.getElementById('toast');
 
         let currentFetchedFiles = [];
 
@@ -191,7 +212,6 @@ HTML_TEMPLATE = """
 
                     filesCount.innerText = `${data.files.length} Item(s)`;
 
-                    // Check if there's any video
                     const hasVideo = data.files.some(f => f.is_video);
                     if (hasVideo) {
                         videoQualityBox.classList.remove('hidden');
@@ -216,6 +236,17 @@ HTML_TEMPLATE = """
         // 🔄 Quality selector listener for videos
         qualitySelector.addEventListener('change', renderAllMediaCards);
 
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            });
+        }
+
         function renderAllMediaCards() {
             const selectedQuality = qualitySelector.value;
 
@@ -228,9 +259,17 @@ HTML_TEMPLATE = """
                         }
                     </div>
 
-                    <a href="${file.url}" download="${file.filename}" target="_blank" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white text-xs font-bold py-3 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md">
-                        <span>Download ${file.is_video ? `Video (${selectedQuality}p)` : `Photo ${idx+1}`}</span>
-                    </a>
+                    <div class="space-y-2">
+                        <a href="${file.url}" download="${file.filename}" target="_blank" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white text-xs font-bold py-3 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md">
+                            <span>Download ${file.is_video ? `Video (${selectedQuality}p)` : `Photo ${idx+1}`}</span>
+                        </a>
+
+                        ${isDeveloper ? `
+                            <button onclick="copyToClipboard('${file.url}')" class="w-full bg-slate-950 hover:bg-slate-800 border border-slate-700 text-pink-400 text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                                <span>🔗 Copy Direct Media URL</span>
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             `).join('');
         }
@@ -277,7 +316,11 @@ def extract_single_media(url):
 
 @app.route('/')
 def home():
-    return render_template_string(HTML_TEMPLATE)
+    return render_template_string(HTML_TEMPLATE, is_dev=False)
+
+@app.route('/developer')
+def developer():
+    return render_template_string(HTML_TEMPLATE, is_dev=True)
 
 @app.route('/api/download', methods=['POST'])
 def download_api():
