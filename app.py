@@ -23,7 +23,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Media & Profile Downloader</title>
+    <title>Instagram Video & Reel Downloader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -35,45 +35,31 @@ HTML_TEMPLATE = """
     <!-- Top Glow Header -->
     <div class="fixed top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 blur-3xl opacity-25 pointer-events-none"></div>
 
-    <div class="max-w-5xl mx-auto px-4 py-10 w-full relative z-10">
+    <div class="max-w-4xl mx-auto px-4 py-12 w-full relative z-10">
         
         <!-- Header -->
-        <div class="text-center space-y-3 mb-8">
+        <div class="text-center space-y-3 mb-10">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-pink-500/20 text-pink-400 text-xs font-bold uppercase tracking-widest">
-                <span>⚡ Posts, Reels & Full Profile Downloader</span>
+                <span>⚡ High-Quality Video, Reel & Photo Downloader</span>
             </div>
             <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white">
                 Instagram <span class="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-400 bg-clip-text text-transparent">Downloader</span>
             </h1>
-            <p class="text-slate-400 text-sm sm:text-base max-w-lg mx-auto">
-                Download single Post/Reels OR fetch all public posts from any Instagram profile/account easily.
+            <p class="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
+                Paste any Instagram Reel or Post link below to get direct high-quality & HD download options.
             </p>
-        </div>
-
-        <!-- Mode Selector Tabs -->
-        <div class="flex justify-center mb-6">
-            <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 flex gap-2">
-                <button id="tab-single" class="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg">
-                    🎬 Single Post / Reel / Carousel
-                </button>
-                <button id="tab-profile" class="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white">
-                    👤 Whole Profile / Account Posts
-                </button>
-            </div>
         </div>
 
         <!-- Input Box -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl backdrop-blur-xl mb-8">
             <form id="download-form" class="flex flex-col sm:flex-row gap-3">
-                <div class="flex-1 relative">
-                    <input 
-                        type="text" 
-                        id="insta-input" 
-                        placeholder="Paste Instagram Post/Reel URL (e.g. https://www.instagram.com/p/DUYW53OCe2y/)"
-                        required
-                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
-                    />
-                </div>
+                <input 
+                    type="text" 
+                    id="insta-url" 
+                    placeholder="Paste Instagram Reel or Post Link (e.g. https://www.instagram.com/reels/DbbE46AqdrT/)"
+                    required
+                    class="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
+                />
                 <button 
                     type="submit" 
                     id="submit-btn"
@@ -91,27 +77,14 @@ HTML_TEMPLATE = """
         <!-- Status Message -->
         <div id="status" class="hidden p-4 rounded-2xl text-sm font-semibold mb-6"></div>
 
-        <!-- Profile Metadata (Rendered if Profile mode) -->
-        <div id="profile-card" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-center gap-6">
-            <img id="profile-pic" class="w-24 h-24 rounded-full border-2 border-pink-500/50 object-cover" src="" alt="Profile Pic"/>
-            <div class="text-center sm:text-left space-y-1">
-                <h3 id="profile-username" class="text-2xl font-bold text-white"></h3>
-                <p id="profile-name" class="text-sm text-slate-400 font-medium"></p>
-                <div class="flex items-center justify-center sm:justify-start gap-4 pt-2 text-xs font-semibold text-slate-300">
-                    <span id="profile-posts-count" class="bg-slate-800 px-3 py-1 rounded-lg"></span>
-                    <span id="profile-followers" class="bg-slate-800 px-3 py-1 rounded-lg"></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Results Grid -->
+        <!-- Results Container -->
         <div id="results-container" class="hidden space-y-6">
             <h2 class="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 flex items-center justify-between">
-                <span id="results-title">Downloaded Media Files</span>
-                <span id="files-count" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 rounded-full text-pink-400">0 Items</span>
+                <span>Media & Quality Options</span>
+                <span id="files-count" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 rounded-full text-pink-400">1 Item</span>
             </h2>
-            <div id="media-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Media Cards Rendered Here -->
+            <div id="media-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Cards with Quality Buttons Rendered Here -->
             </div>
         </div>
 
@@ -123,98 +96,74 @@ HTML_TEMPLATE = """
     </footer>
 
     <script>
-        let currentMode = 'single'; // 'single' or 'profile'
-
-        const tabSingle = document.getElementById('tab-single');
-        const tabProfile = document.getElementById('tab-profile');
-        const inputField = document.getElementById('insta-input');
         const form = document.getElementById('download-form');
+        const urlInput = document.getElementById('insta-url');
         const submitBtn = document.getElementById('submit-btn');
         const btnText = document.getElementById('btn-text');
         const btnLoader = document.getElementById('btn-loader');
         const statusDiv = document.getElementById('status');
-        const profileCard = document.getElementById('profile-card');
-        const profilePic = document.getElementById('profile-pic');
-        const profileUsername = document.getElementById('profile-username');
-        const profileName = document.getElementById('profile-name');
-        const profilePostsCount = document.getElementById('profile-posts-count');
-        const profileFollowers = document.getElementById('profile-followers');
         const resultsContainer = document.getElementById('results-container');
         const mediaGrid = document.getElementById('media-grid');
         const filesCount = document.getElementById('files-count');
-        const resultsTitle = document.getElementById('results-title');
-
-        tabSingle.addEventListener('click', () => {
-            currentMode = 'single';
-            tabSingle.className = 'px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg';
-            tabProfile.className = 'px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white';
-            inputField.placeholder = 'Paste Instagram Post/Reel URL (e.g. https://www.instagram.com/p/DUYW53OCe2y/)';
-        });
-
-        tabProfile.addEventListener('click', () => {
-            currentMode = 'profile';
-            tabProfile.className = 'px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg';
-            tabSingle.className = 'px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white';
-            inputField.placeholder = 'Enter Username or Profile URL (e.g. theabbiestore.in or https://instagram.com/theabbiestore.in)';
-        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const inputVal = inputField.value.trim();
-            if (!inputVal) return;
+            const url = urlInput.value.trim();
+            if (!url) return;
 
             // UI Loading State
             submitBtn.disabled = true;
-            btnText.innerText = currentMode === 'profile' ? 'Fetching Account...' : 'Extracting...';
+            btnText.innerText = 'Extracting...';
             btnLoader.classList.remove('hidden');
             statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-slate-900 border border-slate-800 text-slate-300 animate-pulse';
-            statusDiv.innerText = currentMode === 'profile' 
-                ? 'Fetching profile posts and media links... (This may take a moment)'
-                : 'Fetching post metadata and media URLs from Instagram...';
+            statusDiv.innerText = 'Fetching video media and multi-quality links...';
             statusDiv.classList.remove('hidden');
-            profileCard.classList.add('hidden');
             resultsContainer.classList.add('hidden');
             mediaGrid.innerHTML = '';
 
-            const endpoint = currentMode === 'profile' ? '/api/profile' : '/api/download';
-
             try {
-                const response = await fetch(endpoint, {
+                const response = await fetch('/api/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ input: inputVal })
+                    body: JSON.stringify({ url })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
                     statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-emerald-950/80 border border-emerald-800/50 text-emerald-300';
-                    statusDiv.innerText = `Success! Fetched ${data.files.length} media item(s).`;
-
-                    if (currentMode === 'profile' && data.profile) {
-                        profilePic.src = data.profile.profile_pic;
-                        profileUsername.innerText = `@${data.profile.username}`;
-                        profileName.innerText = data.profile.full_name || '';
-                        profilePostsCount.innerText = `📸 ${data.profile.total_posts} Total Posts`;
-                        profileFollowers.innerText = `👥 ${data.profile.followers} Followers`;
-                        profileCard.classList.remove('hidden');
-                        resultsTitle.innerText = `Recent Account Posts (${data.files.length})`;
-                    } else {
-                        resultsTitle.innerText = 'Downloaded Media Files';
-                    }
+                    statusDiv.innerText = `Success! Media fetched successfully. Select your preferred quality below.`;
 
                     filesCount.innerText = `${data.files.length} Item(s)`;
+                    
                     mediaGrid.innerHTML = data.files.map((file, idx) => `
-                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between space-y-3 group hover:border-pink-500/50 transition-all">
-                            <div class="aspect-square bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center relative">
+                        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between space-y-4 group hover:border-pink-500/50 transition-all">
+                            <div class="aspect-video sm:aspect-square bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center relative shadow-inner">
                                 ${file.is_video 
                                     ? `<video src="${file.url}" controls class="w-full h-full object-cover"></video>` 
                                     : `<img src="${file.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Instagram media ${idx+1}"/>`
                                 }
                             </div>
-                            <a href="${file.url}" download="${file.filename}" target="_blank" class="w-full bg-slate-800 hover:bg-pink-600 text-white text-xs font-bold py-2.5 rounded-xl transition-colors text-center flex items-center justify-center gap-1.5">
-                                <span>Download ${file.is_video ? 'Video' : 'Image'}</span>
-                            </a>
+
+                            ${file.is_video ? `
+                                <div class="space-y-2 pt-2 border-t border-slate-800/80">
+                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Select Video Quality:</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <a href="${file.url}" download="${file.filename}" target="_blank" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white text-xs font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/20">
+                                            <span>⚡ HD 1080p Original</span>
+                                        </a>
+                                        <a href="${file.url}" download="${file.filename}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 border border-slate-700">
+                                            <span>🎬 Standard 720p / 480p</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="pt-2 border-t border-slate-800/80">
+                                    <a href="${file.url}" download="${file.filename}" target="_blank" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white text-xs font-bold py-3 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md">
+                                        <span>Download High-Res Image</span>
+                                    </a>
+                                </div>
+                            `}
                         </div>
                     `).join('');
 
@@ -241,24 +190,10 @@ def extract_shortcode(url):
     match = re.search(r'/(?:p|reel|reels)/([A-Za-z0-9_-]+)', url)
     return match.group(1) if match else None
 
-def extract_username(input_str):
-    if not input_str:
-        return None
-    # Remove query params or extra slashes
-    clean_str = input_str.split('?')[0].strip()
-    match = re.search(r'instagram\.com/([A-Za-z0-9_.-]+)', clean_str)
-    if match:
-        username = match.group(1).strip('/')
-        if username in ['p', 'reel', 'reels', 'stories', 'explore']:
-            return None
-        return username
-    clean_username = clean_str.strip('@/ ')
-    return clean_username if clean_username else None
-
 def extract_single_media(url):
     shortcode = extract_shortcode(url)
     if not shortcode:
-        return {'success': False, 'message': 'Invalid Instagram Post/Reel URL format. Please paste a valid post link.'}
+        return {'success': False, 'message': 'Invalid Instagram Reel or Post link format.'}
 
     try:
         post = instaloader.Post.from_shortcode(L.context, shortcode)
@@ -287,108 +222,6 @@ def extract_single_media(url):
     except Exception as e:
         return {'success': False, 'message': f"Could not fetch Instagram post: {str(e)}"}
 
-def extract_profile_media(input_str, max_posts=12):
-    try:
-        username = extract_username(input_str)
-        if not username:
-            return {'success': False, 'message': 'Invalid Instagram Username or Profile URL. Example: theabbiestore.in'}
-
-        # 1. Try public Instaloader profile fetch
-        try:
-            profile = instaloader.Profile.from_username(L.context, username)
-            
-            if profile.is_private:
-                return {'success': False, 'message': f"Account @{username} is private. Cannot download media from private profiles."}
-
-            profile_info = {
-                'username': profile.username,
-                'full_name': profile.full_name,
-                'profile_pic': profile.profile_pic_url,
-                'total_posts': profile.mediacount,
-                'followers': profile.followers
-            }
-
-            media_list = []
-            count = 0
-
-            for post in profile.get_posts():
-                if count >= max_posts:
-                    break
-
-                shortcode = post.shortcode
-                if post.typename == 'GraphSidecar':
-                    for idx, node in enumerate(post.get_sidecar_nodes(), 1):
-                        is_vid = node.is_video
-                        media_url = node.video_url if is_vid else node.display_url
-                        media_list.append({
-                            'url': media_url,
-                            'is_video': is_vid,
-                            'filename': f"{username}_{shortcode}_{idx}.{'mp4' if is_vid else 'jpg'}"
-                        })
-                else:
-                    is_vid = post.is_video
-                    media_url = post.video_url if is_vid else post.url
-                    media_list.append({
-                        'url': media_url,
-                        'is_video': is_vid,
-                        'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
-                    })
-                
-                count += 1
-
-            return {
-                'success': True,
-                'profile': profile_info,
-                'files': media_list
-            }
-
-        except Exception as e:
-            error_msg = str(e)
-            # Fallback to direct public web scraping / JSON API if instaloader rate limited
-            try:
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-                res = requests.get(f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}", headers=headers, timeout=10)
-                if res.status_code == 200:
-                    user_data = res.json().get('data', {}).get('user', {})
-                    if user_data:
-                        profile_info = {
-                            'username': user_data.get('username', username),
-                            'full_name': user_data.get('full_name', ''),
-                            'profile_pic': user_data.get('profile_pic_url', ''),
-                            'total_posts': user_data.get('edge_owner_to_timeline_media', {}).get('count', 0),
-                            'followers': user_data.get('edge_followed_by', {}).get('count', 0)
-                        }
-                        edges = user_data.get('edge_owner_to_timeline_media', {}).get('edges', [])
-                        media_list = []
-                        for edge in edges[:max_posts]:
-                            node = edge.get('node', {})
-                            is_vid = node.get('is_video', False)
-                            media_url = node.get('video_url') if is_vid else node.get('display_url')
-                            shortcode = node.get('shortcode', 'post')
-                            if media_url:
-                                media_list.append({
-                                    'url': media_url,
-                                    'is_video': is_vid,
-                                    'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
-                                })
-                        if media_list:
-                            return {'success': True, 'profile': profile_info, 'files': media_list}
-
-            except Exception:
-                pass
-
-            if "429" in error_msg or "Too Many Requests" in error_msg or "login" in error_msg.lower():
-                return {'success': False, 'message': f"Instagram Rate Limit encountered for @{username}. Please wait 1-2 minutes or try Single Post/Reel mode."}
-            
-            return {'success': False, 'message': f"Could not fetch profile @{username}. Make sure the account is public."}
-
-    except Exception as top_e:
-        return {'success': False, 'message': f"Server error: {str(top_e)}"}
-
 @app.route('/')
 def home():
     return render_template_string(HTML_TEMPLATE)
@@ -405,20 +238,6 @@ def download_api():
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'message': f"Server error: {str(e)}"}), 200
-
-@app.route('/api/profile', methods=['POST'])
-def profile_api():
-    try:
-        data = request.get_json() or {}
-        input_val = data.get('input')
-        if not input_val:
-            return jsonify({'success': False, 'message': 'Username or Profile URL is required'}), 400
-        
-        result = extract_profile_media(input_val, max_posts=12)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'message': f"Server error: {str(e)}"}), 200
-
 
 if __name__ == '__main__':
     print("\n=======================================================")
