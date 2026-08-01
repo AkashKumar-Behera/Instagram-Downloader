@@ -242,16 +242,17 @@ def extract_shortcode(url):
     return match.group(1) if match else None
 
 def extract_username(input_str):
-    # If full URL given, extract username
-    match = re.search(r'instagram\.com/([A-Za-z0-9_.-]+)', input_str)
+    if not input_str:
+        return None
+    # Remove query params or extra slashes
+    clean_str = input_str.split('?')[0].strip()
+    match = re.search(r'instagram\.com/([A-Za-z0-9_.-]+)', clean_str)
     if match:
-        username = match.group(1).rstrip('/')
-        # Exclude reserved paths
+        username = match.group(1).strip('/')
         if username in ['p', 'reel', 'reels', 'stories', 'explore']:
             return None
         return username
-    # Otherwise treat as raw username string
-    clean_username = input_str.strip('@/ ')
+    clean_username = clean_str.strip('@/ ')
     return clean_username if clean_username else None
 
 def extract_single_media(url):
@@ -287,102 +288,106 @@ def extract_single_media(url):
         return {'success': False, 'message': f"Could not fetch Instagram post: {str(e)}"}
 
 def extract_profile_media(input_str, max_posts=12):
-    username = extract_username(input_str)
-    if not username:
-        return {'success': False, 'message': 'Invalid Instagram Username or Profile URL. Example: theabbiestore.in'}
-
-    # 1. Try public Instaloader profile fetch
     try:
-        profile = instaloader.Profile.from_username(L.context, username)
-        
-        if profile.is_private:
-            return {'success': False, 'message': f"Account @{username} is private. Cannot download media from private profiles."}
+        username = extract_username(input_str)
+        if not username:
+            return {'success': False, 'message': 'Invalid Instagram Username or Profile URL. Example: theabbiestore.in'}
 
-        profile_info = {
-            'username': profile.username,
-            'full_name': profile.full_name,
-            'profile_pic': profile.profile_pic_url,
-            'total_posts': profile.mediacount,
-            'followers': profile.followers
-        }
+        # 1. Try public Instaloader profile fetch
+        try:
+            profile = instaloader.Profile.from_username(L.context, username)
+            
+            if profile.is_private:
+                return {'success': False, 'message': f"Account @{username} is private. Cannot download media from private profiles."}
 
-        media_list = []
-        count = 0
+            profile_info = {
+                'username': profile.username,
+                'full_name': profile.full_name,
+                'profile_pic': profile.profile_pic_url,
+                'total_posts': profile.mediacount,
+                'followers': profile.followers
+            }
 
-        for post in profile.get_posts():
-            if count >= max_posts:
-                break
+            media_list = []
+            count = 0
 
-            shortcode = post.shortcode
-            if post.typename == 'GraphSidecar':
-                for idx, node in enumerate(post.get_sidecar_nodes(), 1):
-                    is_vid = node.is_video
-                    media_url = node.video_url if is_vid else node.display_url
+            for post in profile.get_posts():
+                if count >= max_posts:
+                    break
+
+                shortcode = post.shortcode
+                if post.typename == 'GraphSidecar':
+                    for idx, node in enumerate(post.get_sidecar_nodes(), 1):
+                        is_vid = node.is_video
+                        media_url = node.video_url if is_vid else node.display_url
+                        media_list.append({
+                            'url': media_url,
+                            'is_video': is_vid,
+                            'filename': f"{username}_{shortcode}_{idx}.{'mp4' if is_vid else 'jpg'}"
+                        })
+                else:
+                    is_vid = post.is_video
+                    media_url = post.video_url if is_vid else post.url
                     media_list.append({
                         'url': media_url,
                         'is_video': is_vid,
-                        'filename': f"{username}_{shortcode}_{idx}.{'mp4' if is_vid else 'jpg'}"
+                        'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
                     })
-            else:
-                is_vid = post.is_video
-                media_url = post.video_url if is_vid else post.url
-                media_list.append({
-                    'url': media_url,
-                    'is_video': is_vid,
-                    'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
-                })
-            
-            count += 1
+                
+                count += 1
 
-        return {
-            'success': True,
-            'profile': profile_info,
-            'files': media_list
-        }
-
-    except Exception as e:
-        error_msg = str(e)
-        # Fallback to direct public web scraping / JSON API if instaloader rate limited
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+            return {
+                'success': True,
+                'profile': profile_info,
+                'files': media_list
             }
-            res = requests.get(f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}", headers=headers, timeout=10)
-            if res.status_code == 200:
-                user_data = res.json().get('data', {}).get('user', {})
-                if user_data:
-                    profile_info = {
-                        'username': user_data.get('username', username),
-                        'full_name': user_data.get('full_name', ''),
-                        'profile_pic': user_data.get('profile_pic_url', ''),
-                        'total_posts': user_data.get('edge_owner_to_timeline_media', {}).get('count', 0),
-                        'followers': user_data.get('edge_followed_by', {}).get('count', 0)
-                    }
-                    edges = user_data.get('edge_owner_to_timeline_media', {}).get('edges', [])
-                    media_list = []
-                    for edge in edges[:max_posts]:
-                        node = edge.get('node', {})
-                        is_vid = node.get('is_video', False)
-                        media_url = node.get('video_url') if is_vid else node.get('display_url')
-                        shortcode = node.get('shortcode', 'post')
-                        if media_url:
-                            media_list.append({
-                                'url': media_url,
-                                'is_video': is_vid,
-                                'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
-                            })
-                    if media_list:
-                        return {'success': True, 'profile': profile_info, 'files': media_list}
 
-        except Exception:
-            pass
+        except Exception as e:
+            error_msg = str(e)
+            # Fallback to direct public web scraping / JSON API if instaloader rate limited
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+                res = requests.get(f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}", headers=headers, timeout=10)
+                if res.status_code == 200:
+                    user_data = res.json().get('data', {}).get('user', {})
+                    if user_data:
+                        profile_info = {
+                            'username': user_data.get('username', username),
+                            'full_name': user_data.get('full_name', ''),
+                            'profile_pic': user_data.get('profile_pic_url', ''),
+                            'total_posts': user_data.get('edge_owner_to_timeline_media', {}).get('count', 0),
+                            'followers': user_data.get('edge_followed_by', {}).get('count', 0)
+                        }
+                        edges = user_data.get('edge_owner_to_timeline_media', {}).get('edges', [])
+                        media_list = []
+                        for edge in edges[:max_posts]:
+                            node = edge.get('node', {})
+                            is_vid = node.get('is_video', False)
+                            media_url = node.get('video_url') if is_vid else node.get('display_url')
+                            shortcode = node.get('shortcode', 'post')
+                            if media_url:
+                                media_list.append({
+                                    'url': media_url,
+                                    'is_video': is_vid,
+                                    'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
+                                })
+                        if media_list:
+                            return {'success': True, 'profile': profile_info, 'files': media_list}
 
-        if "429" in error_msg or "Too Many Requests" in error_msg or "login" in error_msg.lower():
-            return {'success': False, 'message': f"Instagram Rate Limit encountered for @{username}. Please wait 1-2 minutes or try Single Post/Reel mode."}
-        
-        return {'success': False, 'message': f"Could not fetch profile @{username}. Make sure the account is public."}
+            except Exception:
+                pass
+
+            if "429" in error_msg or "Too Many Requests" in error_msg or "login" in error_msg.lower():
+                return {'success': False, 'message': f"Instagram Rate Limit encountered for @{username}. Please wait 1-2 minutes or try Single Post/Reel mode."}
+            
+            return {'success': False, 'message': f"Could not fetch profile @{username}. Make sure the account is public."}
+
+    except Exception as top_e:
+        return {'success': False, 'message': f"Server error: {str(top_e)}"}
 
 @app.route('/')
 def home():
@@ -390,23 +395,30 @@ def home():
 
 @app.route('/api/download', methods=['POST'])
 def download_api():
-    data = request.get_json() or {}
-    input_val = data.get('input') or data.get('url')
-    if not input_val:
-        return jsonify({'success': False, 'message': 'URL is required'}), 400
-    
-    result = extract_single_media(input_val)
-    return jsonify(result)
+    try:
+        data = request.get_json() or {}
+        input_val = data.get('input') or data.get('url')
+        if not input_val:
+            return jsonify({'success': False, 'message': 'URL is required'}), 400
+        
+        result = extract_single_media(input_val)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f"Server error: {str(e)}"}), 200
 
 @app.route('/api/profile', methods=['POST'])
 def profile_api():
-    data = request.get_json() or {}
-    input_val = data.get('input')
-    if not input_val:
-        return jsonify({'success': False, 'message': 'Username or Profile URL is required'}), 400
-    
-    result = extract_profile_media(input_val, max_posts=12)
-    return jsonify(result)
+    try:
+        data = request.get_json() or {}
+        input_val = data.get('input')
+        if not input_val:
+            return jsonify({'success': False, 'message': 'Username or Profile URL is required'}), 400
+        
+        result = extract_profile_media(input_val, max_posts=12)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f"Server error: {str(e)}"}), 200
+
 
 if __name__ == '__main__':
     print("\n=======================================================")
