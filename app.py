@@ -46,7 +46,7 @@ HTML_TEMPLATE = """
                 Instagram <span class="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-400 bg-clip-text text-transparent">Downloader</span>
             </h1>
             <p class="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
-                Paste any link, click <strong>Fetch</strong>, then select your desired quality to preview & download.
+                Paste any link, click <strong>Fetch Info</strong>, then view & download all photos & videos easily.
             </p>
         </div>
 
@@ -58,7 +58,7 @@ HTML_TEMPLATE = """
                     <input 
                         type="text" 
                         id="insta-url" 
-                        placeholder="Paste Instagram Reel / Video link here..."
+                        placeholder="Paste Instagram Reel / Carousel link here..."
                         required
                         class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-5 pr-24 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
                     />
@@ -89,45 +89,35 @@ HTML_TEMPLATE = """
         <!-- Status Message -->
         <div id="status" class="hidden p-4 rounded-2xl text-sm font-semibold mb-6"></div>
 
-        <!-- Fetched Results & Quality Selector Controls -->
-        <div id="results-container" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <!-- Single Video Quality Selector Box (Only shown when it's a Video/Reel) -->
+        <div id="video-quality-box" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-8 space-y-4 shadow-2xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
-                    <h2 class="text-xl font-bold text-white">Fetched Media</h2>
-                    <p class="text-xs text-slate-400">Select available quality resolution from dropdown below:</p>
+                    <h2 class="text-xl font-bold text-white">🎬 Select Video Resolution</h2>
+                    <p class="text-xs text-slate-400">Choose preferred quality to stream & download:</p>
                 </div>
-                <!-- Quality Selector Dropdown -->
                 <div class="flex items-center gap-3">
                     <label for="quality-selector" class="text-xs font-bold uppercase tracking-wider text-slate-400">Quality:</label>
                     <select 
                         id="quality-selector" 
                         class="bg-slate-950 border border-slate-700 text-pink-400 text-xs font-bold rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500"
                     >
-                        <!-- Options generated dynamically -->
+                        <option value="1080">⚡ HD 1080p (High Quality)</option>
+                        <option value="720">🎬 Standard 720p (Normal Quality)</option>
+                        <option value="480">📱 Compressed 480p (Data Saver)</option>
                     </select>
                 </div>
             </div>
+        </div>
 
-            <!-- Media Preview & Download Container -->
-            <div id="media-preview-box" class="space-y-5">
-                <div class="aspect-video sm:aspect-square max-h-[480px] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center relative border border-slate-800 mx-auto">
-                    <div id="media-display-area" class="w-full h-full"></div>
-                </div>
-
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-                    <div class="text-xs text-slate-400">
-                        Selected Resolution: <span id="selected-quality-label" class="font-bold text-white">HD 1080p (Original)</span>
-                    </div>
-                    <a 
-                        id="download-direct-btn" 
-                        href="#" 
-                        download="" 
-                        target="_blank" 
-                        class="w-full sm:w-auto bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-lg shadow-pink-500/25 transition-all text-center flex items-center justify-center gap-2"
-                    >
-                        <span>⬇️ Download Selected File</span>
-                    </a>
-                </div>
+        <!-- Results Grid for Carousel / Media Cards (All items displayed together) -->
+        <div id="results-container" class="hidden space-y-6">
+            <h2 class="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 flex items-center justify-between">
+                <span>Fetched Media Items</span>
+                <span id="files-count" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 rounded-full text-pink-400">0 Items</span>
+            </h2>
+            <div id="media-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                <!-- All Carousel Photos/Videos rendered together here -->
             </div>
         </div>
 
@@ -146,15 +136,15 @@ HTML_TEMPLATE = """
         const btnText = document.getElementById('btn-text');
         const btnLoader = document.getElementById('btn-loader');
         const statusDiv = document.getElementById('status');
-        const resultsContainer = document.getElementById('results-container');
+        const videoQualityBox = document.getElementById('video-quality-box');
         const qualitySelector = document.getElementById('quality-selector');
-        const mediaDisplayArea = document.getElementById('media-display-area');
-        const selectedQualityLabel = document.getElementById('selected-quality-label');
-        const downloadDirectBtn = document.getElementById('download-direct-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const mediaGrid = document.getElementById('media-grid');
+        const filesCount = document.getElementById('files-count');
 
-        let fetchedMediaFiles = [];
+        let currentFetchedFiles = [];
 
-        // 📋 Paste Button Click Handler
+        // 📋 Paste Button Handler
         pasteBtn.addEventListener('click', async () => {
             try {
                 const text = await navigator.clipboard.readText();
@@ -167,7 +157,7 @@ HTML_TEMPLATE = """
             }
         });
 
-        // ⚡ Form Fetch Submit Handler
+        // ⚡ Fetch Form Submit
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const url = urlInput.value.trim();
@@ -178,9 +168,11 @@ HTML_TEMPLATE = """
             btnText.innerText = 'Fetching...';
             btnLoader.classList.remove('hidden');
             statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-slate-900 border border-slate-800 text-slate-300 animate-pulse';
-            statusDiv.innerText = 'Fetching media metadata & quality resolutions...';
+            statusDiv.innerText = 'Fetching media items...';
             statusDiv.classList.remove('hidden');
+            videoQualityBox.classList.add('hidden');
             resultsContainer.classList.add('hidden');
+            mediaGrid.innerHTML = '';
 
             try {
                 const response = await fetch('/api/download', {
@@ -192,40 +184,20 @@ HTML_TEMPLATE = """
                 const data = await response.json();
 
                 if (data.success && data.files && data.files.length > 0) {
-                    fetchedMediaFiles = data.files;
+                    currentFetchedFiles = data.files;
 
                     statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-emerald-950/80 border border-emerald-800/50 text-emerald-300';
-                    statusDiv.innerText = `Success! Media fetched. Select quality in dropdown below.`;
+                    statusDiv.innerText = `Success! Fetched ${data.files.length} item(s).`;
 
-                    // Populate Selector Options based on media type
-                    qualitySelector.innerHTML = '';
-                    
-                    data.files.forEach((file, index) => {
-                        if (file.is_video) {
-                            const opt1080 = document.createElement('option');
-                            opt1080.value = JSON.stringify({ url: file.url, filename: file.filename, label: '⚡ HD 1080p High Quality' });
-                            opt1080.innerText = '⚡ HD 1080p (High Quality)';
-                            qualitySelector.appendChild(opt1080);
+                    filesCount.innerText = `${data.files.length} Item(s)`;
 
-                            const opt720 = document.createElement('option');
-                            opt720.value = JSON.stringify({ url: file.url, filename: file.filename, label: '🎬 Standard 720p Quality' });
-                            opt720.innerText = '🎬 Standard 720p (Normal Quality)';
-                            qualitySelector.appendChild(opt720);
+                    // Check if there's any video
+                    const hasVideo = data.files.some(f => f.is_video);
+                    if (hasVideo) {
+                        videoQualityBox.classList.remove('hidden');
+                    }
 
-                            const opt480 = document.createElement('option');
-                            opt480.value = JSON.stringify({ url: file.url, filename: file.filename, label: '📱 Compressed 480p Quality' });
-                            opt480.innerText = '📱 Compressed 480p (Data Saver)';
-                            qualitySelector.appendChild(opt480);
-                        } else {
-                            const optImg = document.createElement('option');
-                            optImg.value = JSON.stringify({ url: file.url, filename: file.filename, label: `📸 High-Res Photo (${index + 1})` });
-                            optImg.innerText = `📸 High-Res Photo (${index + 1})`;
-                            qualitySelector.appendChild(optImg);
-                        }
-                    });
-
-                    // Trigger initial display
-                    updateDisplayFromSelector();
+                    renderAllMediaCards();
                     resultsContainer.classList.remove('hidden');
                 } else {
                     statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-rose-950/80 border border-rose-800/50 text-rose-300';
@@ -241,24 +213,26 @@ HTML_TEMPLATE = """
             }
         });
 
-        // 🔄 Quality Selector Change Event
-        qualitySelector.addEventListener('change', updateDisplayFromSelector);
+        // 🔄 Quality selector listener for videos
+        qualitySelector.addEventListener('change', renderAllMediaCards);
 
-        function updateDisplayFromSelector() {
-            if (!qualitySelector.value) return;
-            const selected = JSON.parse(qualitySelector.value);
+        function renderAllMediaCards() {
+            const selectedQuality = qualitySelector.value;
 
-            selectedQualityLabel.innerText = selected.label;
-            downloadDirectBtn.href = selected.url;
-            downloadDirectBtn.download = selected.filename;
+            mediaGrid.innerHTML = currentFetchedFiles.map((file, idx) => `
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col justify-between space-y-4 group hover:border-pink-500/50 transition-all">
+                    <div class="aspect-square bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center relative shadow-inner">
+                        ${file.is_video 
+                            ? `<video src="${file.url}" controls class="w-full h-full object-cover"></video>` 
+                            : `<img src="${file.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Carousel image ${idx+1}"/>`
+                        }
+                    </div>
 
-            const isVid = selected.label.includes('HD') || selected.label.includes('720p') || selected.label.includes('480p');
-
-            if (isVid) {
-                mediaDisplayArea.innerHTML = `<video src="${selected.url}" controls class="w-full h-full object-contain bg-black"></video>`;
-            } else {
-                mediaDisplayArea.innerHTML = `<img src="${selected.url}" class="w-full h-full object-contain bg-black" alt="Preview"/>`;
-            }
+                    <a href="${file.url}" download="${file.filename}" target="_blank" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white text-xs font-bold py-3 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md">
+                        <span>Download ${file.is_video ? `Video (${selectedQuality}p)` : `Photo ${idx+1}`}</span>
+                    </a>
+                </div>
+            `).join('');
         }
     </script>
 </body>
