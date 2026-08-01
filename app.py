@@ -289,8 +289,9 @@ def extract_single_media(url):
 def extract_profile_media(input_str, max_posts=12):
     username = extract_username(input_str)
     if not username:
-        return {'success': False, 'message': 'Invalid Instagram Username or Profile URL.'}
+        return {'success': False, 'message': 'Invalid Instagram Username or Profile URL. Example: theabbiestore.in'}
 
+    # 1. Try public Instaloader profile fetch
     try:
         profile = instaloader.Profile.from_username(L.context, username)
         
@@ -340,7 +341,48 @@ def extract_profile_media(input_str, max_posts=12):
         }
 
     except Exception as e:
-        return {'success': False, 'message': f"Could not fetch profile @{username}: {str(e)}"}
+        error_msg = str(e)
+        # Fallback to direct public web scraping / JSON API if instaloader rate limited
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+            res = requests.get(f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}", headers=headers, timeout=10)
+            if res.status_code == 200:
+                user_data = res.json().get('data', {}).get('user', {})
+                if user_data:
+                    profile_info = {
+                        'username': user_data.get('username', username),
+                        'full_name': user_data.get('full_name', ''),
+                        'profile_pic': user_data.get('profile_pic_url', ''),
+                        'total_posts': user_data.get('edge_owner_to_timeline_media', {}).get('count', 0),
+                        'followers': user_data.get('edge_followed_by', {}).get('count', 0)
+                    }
+                    edges = user_data.get('edge_owner_to_timeline_media', {}).get('edges', [])
+                    media_list = []
+                    for edge in edges[:max_posts]:
+                        node = edge.get('node', {})
+                        is_vid = node.get('is_video', False)
+                        media_url = node.get('video_url') if is_vid else node.get('display_url')
+                        shortcode = node.get('shortcode', 'post')
+                        if media_url:
+                            media_list.append({
+                                'url': media_url,
+                                'is_video': is_vid,
+                                'filename': f"{username}_{shortcode}.{'mp4' if is_vid else 'jpg'}"
+                            })
+                    if media_list:
+                        return {'success': True, 'profile': profile_info, 'files': media_list}
+
+        except Exception:
+            pass
+
+        if "429" in error_msg or "Too Many Requests" in error_msg or "login" in error_msg.lower():
+            return {'success': False, 'message': f"Instagram Rate Limit encountered for @{username}. Please wait 1-2 minutes or try Single Post/Reel mode."}
+        
+        return {'success': False, 'message': f"Could not fetch profile @{username}. Make sure the account is public."}
 
 @app.route('/')
 def home():
