@@ -1,62 +1,37 @@
 import sys
 import json
-import re
-import instaloader
+import urllib.request
 
 def main():
-    L = instaloader.Instaloader(
-        download_pictures=False,
-        download_videos=False,
-        download_video_thumbnails=False,
-        download_geotags=False,
-        download_comments=False,
-        save_metadata=False,
-        compress_json=False
-    )
-
-    def extract_shortcode(url):
-        match = re.search(r'/(?:p|reel|reels)/([A-Za-z0-9_-]+)', url)
-        return match.group(1) if match else None
-
     def fetch_instagram_media(url):
-        shortcode = extract_shortcode(url)
-        if not shortcode:
-            return {"success": False, "message": "Invalid Instagram URL format. Must contain /p/ or /reel/"}
-
         try:
-            post = instaloader.Post.from_shortcode(L.context, shortcode)
-            media_urls = []
-
-            if post.typename == 'GraphSidecar':
-                for idx, node in enumerate(post.get_sidecar_nodes(), 1):
-                    is_vid = node.is_video
-                    media_url = node.video_url if is_vid else node.display_url
-                    media_urls.append({
-                        "index": idx,
-                        "type": "video" if is_vid else "image",
-                        "direct_url": media_url,
-                        "filename": f"{shortcode}_carousel_{idx}.{'mp4' if is_vid else 'jpg'}"
-                    })
-            else:
-                is_vid = post.is_video
-                media_url = post.video_url if is_vid else post.url
-                media_urls.append({
-                    "index": 1,
-                    "type": "video" if is_vid else "image",
-                    "direct_url": media_url,
-                    "filename": f"{shortcode}.{'mp4' if is_vid else 'jpg'}"
-                })
-
-            return {
-                "success": True,
-                "shortcode": shortcode,
-                "caption": post.caption or "",
-                "owner_username": post.owner_username,
-                "media_count": len(media_urls),
-                "media_urls": media_urls
-            }
+            req_data = json.dumps({"url": url}).encode('utf-8')
+            req = urllib.request.Request(
+                "https://insta.croto.in/api/download",
+                data=req_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                res_body = resp.read().decode('utf-8')
+                data = json.loads(res_body)
+                if data.get("success"):
+                    return {
+                        "success": True,
+                        "media_count": len(data.get("files", [])),
+                        "media_urls": [
+                            {
+                                "index": idx + 1,
+                                "type": "video" if f.get("is_video") else "image",
+                                "direct_url": f.get("url"),
+                                "filename": f.get("filename")
+                            }
+                            for idx, f in enumerate(data.get("files", []))
+                        ]
+                    }
+                else:
+                    return {"success": False, "message": data.get("message", "Fetch failed")}
         except Exception as e:
-            return {"success": False, "message": f"Failed to fetch media: {str(e)}"}
+            return {"success": False, "message": f"Failed to connect to insta.croto.in API: {str(e)}"}
 
     while True:
         try:
