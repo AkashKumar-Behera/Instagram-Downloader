@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "instagram-downloader": {
-      "url": "https://insta.croto.in/mcp",
-      "transport": "http"
+      "command": "python",
+      "args": [
+        "c:\\Development\\insta-downloader\\mcp_server.py"
+      ]
     }
   }
 }
