@@ -335,9 +335,105 @@ def download_api():
     except Exception as e:
         return jsonify({'success': False, 'message': f"Server error: {str(e)}"}), 200
 
+@app.route('/mcp', methods=['POST', 'GET'])
+@app.route('/api/mcp', methods=['POST', 'GET'])
+def remote_mcp_handler():
+
+    # Provide Tool Manifest on GET
+    if request.method == 'GET':
+        return jsonify({
+            "name": "instagram-downloader",
+            "description": "Remote Web MCP Endpoint for Instagram Direct Media Fetcher",
+            "version": "1.0.0",
+            "tools": [
+                {
+                    "name": "fetch_instagram_media",
+                    "description": "Fetches direct CDN image and video URLs from any public Instagram Post, Reel, or Carousel link.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "Public Instagram Post or Reel URL (e.g. https://www.instagram.com/p/DUYU6GOCS_P/)"
+                            }
+                        },
+                        "required": ["url"]
+                    }
+                }
+            ]
+        })
+
+    # Handle JSON-RPC 2.0 requests via POST
+    req = request.get_json() or {}
+    req_id = req.get("id")
+    method = req.get("method")
+
+    if method == "initialize":
+        return jsonify({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": { "tools": {} },
+                "serverInfo": { "name": "instagram-downloader-web-mcp", "version": "1.0.0" }
+            }
+        })
+
+    elif method == "tools/list":
+        return jsonify({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "tools": [
+                    {
+                        "name": "fetch_instagram_media",
+                        "description": "Fetches direct CDN image and video URLs from any public Instagram Post, Reel, or Carousel link.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "Public Instagram Post or Reel URL"
+                                }
+                            },
+                            "required": ["url"]
+                        }
+                    }
+                ]
+            }
+        })
+
+    elif method == "tools/call":
+        params = req.get("params", {})
+        name = params.get("name")
+        args = params.get("arguments", {})
+
+        if name == "fetch_instagram_media":
+            url = args.get("url", "")
+            media_res = extract_single_media(url)
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps(media_res, indent=2)
+                        }
+                    ]
+                }
+            })
+
+    return jsonify({
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "error": { "code": -32601, "message": "Method or tool not found" }
+    })
+
 if __name__ == '__main__':
     print("\n=======================================================")
     print("Instagram Downloader Web Tool is Running!")
     print("Open http://localhost:5000 in your browser")
     print("=======================================================\n")
     app.run(host='0.0.0.0', port=5000, debug=True)
+
