@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "instagram-downloader": {
+      "command": "python",
+      "args": [
+        "c:\\Development\\insta-downloader\\mcp_server.py"
+      ]
+    }
+  }
+}
