@@ -44,11 +44,65 @@ HTML_TEMPLATE = """
                 <span>⚡ Reel, Video & Carousel Media Fetcher</span>
             </div>
             <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white">
-                Instagram <span class="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-400 bg-clip-text text-transparent">Downloader</span>
+                Instagra<span id="mcp-trigger-m" class="cursor-pointer select-none hover:text-pink-400 transition-colors" title="Double tap 'm' for MCP Config">m</span> <span class="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-400 bg-clip-text text-transparent">Downloader</span>
             </h1>
             <p class="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
                 Paste any link, click <strong>Fetch Info</strong>, then view & download all photos & videos easily.
             </p>
+        </div>
+
+        <!-- MCP Modal Overlay -->
+        <div id="mcp-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+                <button id="close-mcp-modal" class="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center font-bold">✕</button>
+
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs font-bold uppercase tracking-wider">
+                        <span>⚡ Model Context Protocol (MCP) Setup</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Configure MCP Server</h2>
+                    <p class="text-slate-400 text-xs sm:text-sm">Follow these simple steps to configure this tool inside your AI IDE (Antigravity, Claude, Cursor):</p>
+                </div>
+
+                <div class="space-y-4 text-xs sm:text-sm">
+                    <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-200">Option 1: Remote Web MCP (Recommended)</span>
+                            <button onclick="copyToClipboard('https://insta.croto.in/mcp')" class="text-pink-400 hover:underline font-bold text-xs">📋 Copy URL</button>
+                        </div>
+                        <p class="text-slate-400">Add HTTP SSE endpoint to your MCP client config:</p>
+                        <code class="block bg-slate-900 p-2.5 rounded-xl text-emerald-400 font-mono text-xs overflow-x-auto">
+                            https://insta.croto.in/mcp
+                        </code>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-200">Option 2: Local Stdio Configuration (`mcp_config.json`)</span>
+                            <button onclick="copyMcpJson()" class="text-pink-400 hover:underline font-bold text-xs">📋 Copy JSON</button>
+                        </div>
+                        <p class="text-slate-400">Copy & paste this into your local AI editor's MCP config file:</p>
+                        <pre id="mcp-json-code" class="bg-slate-900 p-3 rounded-xl text-slate-300 font-mono text-xs overflow-x-auto">
+{
+  "mcpServers": {
+    "instagram-downloader": {
+      "command": "python",
+      "args": [
+        "c:\\Development\\insta-downloader\\mcp_server.py"
+      ]
+    }
+  }
+}
+                        </pre>
+                    </div>
+                </div>
+
+                <div class="pt-2 text-right">
+                    <button id="close-mcp-modal-btn" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold px-6 py-2.5 rounded-xl text-xs">
+                        Got it! Close
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Mode Badge Indicator -->
@@ -164,7 +218,39 @@ HTML_TEMPLATE = """
         const filesCount = document.getElementById('files-count');
         const toast = document.getElementById('toast');
 
-        let currentFetchedFiles = [];
+        const mcpTriggerM = document.getElementById('mcp-trigger-m');
+        const mcpModal = document.getElementById('mcp-modal');
+        const closeMcpModal = document.getElementById('close-mcp-modal');
+        const closeMcpModalBtn = document.getElementById('close-mcp-modal-btn');
+
+        // Double-tap or double-click listener on letter 'm'
+        if (mcpTriggerM) {
+            let clickCount = 0;
+            let clickTimer = null;
+
+            mcpTriggerM.addEventListener('click', () => {
+                clickCount++;
+                if (clickCount === 1) {
+                    clickTimer = setTimeout(() => { clickCount = 0; }, 400);
+                } else if (clickCount === 2) {
+                    clearTimeout(clickTimer);
+                    clickCount = 0;
+                    if (mcpModal) mcpModal.classList.remove('hidden');
+                }
+            });
+
+            mcpTriggerM.addEventListener('dblclick', () => {
+                if (mcpModal) mcpModal.classList.remove('hidden');
+            });
+        }
+
+        if (closeMcpModal) closeMcpModal.addEventListener('click', () => mcpModal.classList.add('hidden'));
+        if (closeMcpModalBtn) closeMcpModalBtn.addEventListener('click', () => mcpModal.classList.add('hidden'));
+
+        function copyMcpJson() {
+            const jsonCode = document.getElementById('mcp-json-code').innerText;
+            copyToClipboard(jsonCode);
+        }
 
         // 📋 Paste Button Handler
         pasteBtn.addEventListener('click', async () => {
