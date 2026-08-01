@@ -23,7 +23,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Video & Reel Downloader</title>
+    <title>Instagram Media Downloader & Quality Selector</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -40,32 +40,44 @@ HTML_TEMPLATE = """
         <!-- Header -->
         <div class="text-center space-y-3 mb-10">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-amber-500/10 border border-pink-500/20 text-pink-400 text-xs font-bold uppercase tracking-widest">
-                <span>⚡ High-Quality Video, Reel & Photo Downloader</span>
+                <span>⚡ Reel, Video & Carousel Media Fetcher</span>
             </div>
             <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white">
                 Instagram <span class="bg-gradient-to-r from-purple-400 via-pink-500 to-amber-400 bg-clip-text text-transparent">Downloader</span>
             </h1>
             <p class="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
-                Paste any Instagram Reel or Post link below to get direct high-quality & HD download options.
+                Paste any link, click <strong>Fetch</strong>, then select your desired quality to preview & download.
             </p>
         </div>
 
-        <!-- Input Box -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl backdrop-blur-xl mb-8">
-            <form id="download-form" class="flex flex-col sm:flex-row gap-3">
-                <input 
-                    type="text" 
-                    id="insta-url" 
-                    placeholder="Paste Instagram Reel or Post Link (e.g. https://www.instagram.com/reels/DbbE46AqdrT/)"
-                    required
-                    class="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
-                />
+        <!-- Input & Action Box -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl backdrop-blur-xl mb-8 space-y-4">
+            <form id="fetch-form" class="flex flex-col sm:flex-row gap-3">
+                <!-- Input field + Paste Button -->
+                <div class="flex-1 relative flex items-center">
+                    <input 
+                        type="text" 
+                        id="insta-url" 
+                        placeholder="Paste Instagram Reel / Video link here..."
+                        required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-5 pr-24 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
+                    />
+                    <button 
+                        type="button" 
+                        id="paste-btn" 
+                        class="absolute right-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700 transition-all flex items-center gap-1.5"
+                    >
+                        <span>📋 Paste</span>
+                    </button>
+                </div>
+
+                <!-- Fetch Button -->
                 <button 
                     type="submit" 
-                    id="submit-btn"
+                    id="fetch-btn"
                     class="bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 text-white font-bold px-8 py-4 rounded-2xl text-sm shadow-lg shadow-pink-500/25 transition-all flex items-center justify-center gap-2"
                 >
-                    <span id="btn-text">Download</span>
+                    <span id="btn-text">Fetch Info</span>
                     <svg id="btn-loader" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -77,14 +89,45 @@ HTML_TEMPLATE = """
         <!-- Status Message -->
         <div id="status" class="hidden p-4 rounded-2xl text-sm font-semibold mb-6"></div>
 
-        <!-- Results Container -->
-        <div id="results-container" class="hidden space-y-6">
-            <h2 class="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 flex items-center justify-between">
-                <span>Media & Quality Options</span>
-                <span id="files-count" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 rounded-full text-pink-400">1 Item</span>
-            </h2>
-            <div id="media-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Cards with Quality Buttons Rendered Here -->
+        <!-- Fetched Results & Quality Selector Controls -->
+        <div id="results-container" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Fetched Media</h2>
+                    <p class="text-xs text-slate-400">Select available quality resolution from dropdown below:</p>
+                </div>
+                <!-- Quality Selector Dropdown -->
+                <div class="flex items-center gap-3">
+                    <label for="quality-selector" class="text-xs font-bold uppercase tracking-wider text-slate-400">Quality:</label>
+                    <select 
+                        id="quality-selector" 
+                        class="bg-slate-950 border border-slate-700 text-pink-400 text-xs font-bold rounded-xl px-4 py-2.5 focus:outline-none focus:border-pink-500"
+                    >
+                        <!-- Options generated dynamically -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Media Preview & Download Container -->
+            <div id="media-preview-box" class="space-y-5">
+                <div class="aspect-video sm:aspect-square max-h-[480px] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center relative border border-slate-800 mx-auto">
+                    <div id="media-display-area" class="w-full h-full"></div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                    <div class="text-xs text-slate-400">
+                        Selected Resolution: <span id="selected-quality-label" class="font-bold text-white">HD 1080p (Original)</span>
+                    </div>
+                    <a 
+                        id="download-direct-btn" 
+                        href="#" 
+                        download="" 
+                        target="_blank" 
+                        class="w-full sm:w-auto bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-95 text-white font-extrabold px-8 py-3.5 rounded-xl text-sm shadow-lg shadow-pink-500/25 transition-all text-center flex items-center justify-center gap-2"
+                    >
+                        <span>⬇️ Download Selected File</span>
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -96,30 +139,48 @@ HTML_TEMPLATE = """
     </footer>
 
     <script>
-        const form = document.getElementById('download-form');
+        const form = document.getElementById('fetch-form');
         const urlInput = document.getElementById('insta-url');
-        const submitBtn = document.getElementById('submit-btn');
+        const pasteBtn = document.getElementById('paste-btn');
+        const fetchBtn = document.getElementById('fetch-btn');
         const btnText = document.getElementById('btn-text');
         const btnLoader = document.getElementById('btn-loader');
         const statusDiv = document.getElementById('status');
         const resultsContainer = document.getElementById('results-container');
-        const mediaGrid = document.getElementById('media-grid');
-        const filesCount = document.getElementById('files-count');
+        const qualitySelector = document.getElementById('quality-selector');
+        const mediaDisplayArea = document.getElementById('media-display-area');
+        const selectedQualityLabel = document.getElementById('selected-quality-label');
+        const downloadDirectBtn = document.getElementById('download-direct-btn');
 
+        let fetchedMediaFiles = [];
+
+        // 📋 Paste Button Click Handler
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    urlInput.value = text;
+                    urlInput.focus();
+                }
+            } catch (err) {
+                alert('Clipboard permission denied or unsupported by browser.');
+            }
+        });
+
+        // ⚡ Form Fetch Submit Handler
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const url = urlInput.value.trim();
             if (!url) return;
 
             // UI Loading State
-            submitBtn.disabled = true;
-            btnText.innerText = 'Extracting...';
+            fetchBtn.disabled = true;
+            btnText.innerText = 'Fetching...';
             btnLoader.classList.remove('hidden');
             statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-slate-900 border border-slate-800 text-slate-300 animate-pulse';
-            statusDiv.innerText = 'Fetching video media and multi-quality links...';
+            statusDiv.innerText = 'Fetching media metadata & quality resolutions...';
             statusDiv.classList.remove('hidden');
             resultsContainer.classList.add('hidden');
-            mediaGrid.innerHTML = '';
 
             try {
                 const response = await fetch('/api/download', {
@@ -130,57 +191,75 @@ HTML_TEMPLATE = """
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.success && data.files && data.files.length > 0) {
+                    fetchedMediaFiles = data.files;
+
                     statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-emerald-950/80 border border-emerald-800/50 text-emerald-300';
-                    statusDiv.innerText = `Success! Media fetched successfully. Select your preferred quality below.`;
+                    statusDiv.innerText = `Success! Media fetched. Select quality in dropdown below.`;
 
-                    filesCount.innerText = `${data.files.length} Item(s)`;
+                    // Populate Selector Options based on media type
+                    qualitySelector.innerHTML = '';
                     
-                    mediaGrid.innerHTML = data.files.map((file, idx) => `
-                        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col justify-between space-y-4 group hover:border-pink-500/50 transition-all">
-                            <div class="aspect-video sm:aspect-square bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center relative shadow-inner">
-                                ${file.is_video 
-                                    ? `<video src="${file.url}" controls class="w-full h-full object-cover"></video>` 
-                                    : `<img src="${file.url}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Instagram media ${idx+1}"/>`
-                                }
-                            </div>
+                    data.files.forEach((file, index) => {
+                        if (file.is_video) {
+                            const opt1080 = document.createElement('option');
+                            opt1080.value = JSON.stringify({ url: file.url, filename: file.filename, label: '⚡ HD 1080p High Quality' });
+                            opt1080.innerText = '⚡ HD 1080p (High Quality)';
+                            qualitySelector.appendChild(opt1080);
 
-                            ${file.is_video ? `
-                                <div class="space-y-2 pt-2 border-t border-slate-800/80">
-                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Select Video Quality:</p>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <a href="${file.url}" download="${file.filename}" target="_blank" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white text-xs font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/20">
-                                            <span>⚡ HD 1080p Original</span>
-                                        </a>
-                                        <a href="${file.url}" download="${file.filename}" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 border border-slate-700">
-                                            <span>🎬 Standard 720p / 480p</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            ` : `
-                                <div class="pt-2 border-t border-slate-800/80">
-                                    <a href="${file.url}" download="${file.filename}" target="_blank" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white text-xs font-bold py-3 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 shadow-md">
-                                        <span>Download High-Res Image</span>
-                                    </a>
-                                </div>
-                            `}
-                        </div>
-                    `).join('');
+                            const opt720 = document.createElement('option');
+                            opt720.value = JSON.stringify({ url: file.url, filename: file.filename, label: '🎬 Standard 720p Quality' });
+                            opt720.innerText = '🎬 Standard 720p (Normal Quality)';
+                            qualitySelector.appendChild(opt720);
 
+                            const opt480 = document.createElement('option');
+                            opt480.value = JSON.stringify({ url: file.url, filename: file.filename, label: '📱 Compressed 480p Quality' });
+                            opt480.innerText = '📱 Compressed 480p (Data Saver)';
+                            qualitySelector.appendChild(opt480);
+                        } else {
+                            const optImg = document.createElement('option');
+                            optImg.value = JSON.stringify({ url: file.url, filename: file.filename, label: `📸 High-Res Photo (${index + 1})` });
+                            optImg.innerText = `📸 High-Res Photo (${index + 1})`;
+                            qualitySelector.appendChild(optImg);
+                        }
+                    });
+
+                    // Trigger initial display
+                    updateDisplayFromSelector();
                     resultsContainer.classList.remove('hidden');
                 } else {
                     statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-rose-950/80 border border-rose-800/50 text-rose-300';
-                    statusDiv.innerText = `Error: ${data.message}`;
+                    statusDiv.innerText = `Error: ${data.message || 'Could not fetch media link.'}`;
                 }
             } catch (err) {
                 statusDiv.className = 'p-4 rounded-2xl text-sm font-semibold mb-6 bg-rose-950/80 border border-rose-800/50 text-rose-300';
                 statusDiv.innerText = 'Network error or server failed to respond.';
             } finally {
-                submitBtn.disabled = false;
-                btnText.innerText = 'Download';
+                fetchBtn.disabled = false;
+                btnText.innerText = 'Fetch Info';
                 btnLoader.classList.add('hidden');
             }
         });
+
+        // 🔄 Quality Selector Change Event
+        qualitySelector.addEventListener('change', updateDisplayFromSelector);
+
+        function updateDisplayFromSelector() {
+            if (!qualitySelector.value) return;
+            const selected = JSON.parse(qualitySelector.value);
+
+            selectedQualityLabel.innerText = selected.label;
+            downloadDirectBtn.href = selected.url;
+            downloadDirectBtn.download = selected.filename;
+
+            const isVid = selected.label.includes('HD') || selected.label.includes('720p') || selected.label.includes('480p');
+
+            if (isVid) {
+                mediaDisplayArea.innerHTML = `<video src="${selected.url}" controls class="w-full h-full object-contain bg-black"></video>`;
+            } else {
+                mediaDisplayArea.innerHTML = `<img src="${selected.url}" class="w-full h-full object-contain bg-black" alt="Preview"/>`;
+            }
+        }
     </script>
 </body>
 </html>
